@@ -24,6 +24,7 @@ var start_pos: Vector2
 @onready var bite_area: Area2D = $BiteArea
 
 func _ready():
+	add_to_group("hook")
 	start_pos = global_position
 	bait_hp = max_bait_hp
 
@@ -66,11 +67,12 @@ func _check_bites():
 	if not underwater or state == State.CATCH_REEL:
 		return
 	for area in bite_area.get_overlapping_areas():
+		var fish = area.owner
 		if area.is_in_group("target"):
-			_catch(area)
+			_catch(fish)
 			return
 		if area.is_in_group("nibbler") and can_be_nibbled and bait_hp > 0:
-			_take_nibble(area.nibble_damage)
+			_take_nibble(fish.nibble_damage)
 			return
 
 func _take_nibble(amount: float):

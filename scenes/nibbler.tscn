@@ -1,0 +1,27 @@
+[gd_scene format=3 uid="uid://erd36ioaa2kv"]
+
+[ext_resource type="Script" uid="uid://olu3iirwxali" path="res://scripts/nibbler.gd" id="1_bbd4t"]
+[ext_resource type="Texture2D" uid="uid://dueohcohekhw3" path="res://icon.svg" id="2_hk661"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_l885w"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_15krv"]
+radius = 14.0
+
+[node name="nibbler" type="CharacterBody2D" unique_id=1392807344]
+collision_layer = 4
+motion_mode = 1
+script = ExtResource("1_bbd4t")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1535918384]
+modulate = Color(0.96862745, 0.49411765, 0, 1)
+scale = Vector2(0.2, 0.2)
+texture = ExtResource("2_hk661")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1409076286]
+shape = SubResource("CircleShape2D_l885w")
+
+[node name="Mouth" type="Area2D" parent="." unique_id=1864680852]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Mouth" unique_id=732955463]
+shape = SubResource("CircleShape2D_15krv")

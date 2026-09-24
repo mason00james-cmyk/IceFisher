@@ -1,7 +1,9 @@
 [gd_scene format=3 uid="uid://m51eexi2yg12"]
 
+[ext_resource type="Script" uid="uid://c03i8gcfvm8rl" path="res://scripts/level.gd" id="1_5xbjy"]
 [ext_resource type="Texture2D" uid="uid://dueohcohekhw3" path="res://icon.svg" id="1_014kd"]
 [ext_resource type="Script" uid="uid://c6tt3ds2crnei" path="res://scripts/hook.gd" id="1_bswci"]
+[ext_resource type="Shader" uid="uid://fi7gmdd4ejnq" path="res://shaders/desaturate.gdshader" id="3_rus8k"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_l885w"]
 radius = 12.0
@@ -9,7 +11,12 @@ radius = 12.0
 [sub_resource type="CircleShape2D" id="CircleShape2D_15krv"]
 radius = 22.203604
 
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_l885w"]
+shader = ExtResource("3_rus8k")
+shader_parameter/saturation = 0.0
+
 [node name="Level" type="Node2D" unique_id=1837536374]
+script = ExtResource("1_5xbjy")
 
 [node name="WaterPlaceholder" type="ColorRect" parent="." unique_id=2074302051]
 offset_left = -640.0
@@ -36,3 +43,14 @@ shape = SubResource("CircleShape2D_15krv")
 
 [node name="Camera2D" type="Camera2D" parent="Hook" unique_id=436906310]
 position_smoothing_enabled = true
+
+[node name="ColorFX" type="CanvasLayer" parent="." unique_id=984278124]
+
+[node name="ColorRect" type="ColorRect" parent="ColorFX" unique_id=2087667428]
+material = SubResource("ShaderMaterial_l885w")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2

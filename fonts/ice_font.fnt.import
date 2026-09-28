@@ -1,0 +1,17 @@
+[remap]
+
+importer="font_data_bmfont"
+type="FontFile"
+uid="uid://dmayw533u34cf"
+path="res://.godot/imported/ice_font.fnt-9afa04e09de7a97c7862a69cb06659dc.fontdata"
+
+[deps]
+
+source_file="res://fonts/ice_font.fnt"
+dest_files=["res://.godot/imported/ice_font.fnt-9afa04e09de7a97c7862a69cb06659dc.fontdata"]
+
+[params]
+
+fallbacks=[]
+compress=true
+scaling_mode=1

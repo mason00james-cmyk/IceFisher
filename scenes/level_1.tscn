@@ -31,6 +31,7 @@ offset_bottom = 3000.0
 color = Color(0, 0.27450982, 1, 1)
 
 [node name="Hook" type="CharacterBody2D" parent="." unique_id=403484934]
+z_index = 1
 position = Vector2(0, -200)
 collision_layer = 2
 motion_mode = 1
@@ -123,3 +124,22 @@ position = Vector2(1300, 0)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="wall right" unique_id=1840423683]
 position = Vector2(-647, 1502)
 shape = SubResource("RectangleShape2D_l885w")
+
+[node name="Sky" type="ColorRect" parent="." unique_id=1285885264]
+offset_left = -640.0
+offset_top = -800.0
+offset_right = 640.0
+offset_bottom = 1.0
+color = Color(0.8235294, 0.98039216, 1, 1)
+
+[node name="IceLeft" type="ColorRect" parent="." unique_id=1066471297]
+offset_left = -641.0
+offset_top = -8.0
+offset_right = -31.0
+offset_bottom = 60.0
+
+[node name="IceRight" type="ColorRect" parent="." unique_id=1201784927]
+offset_left = 32.0
+offset_top = -10.0
+offset_right = 642.0
+offset_bottom = 58.0

@@ -7,6 +7,7 @@
 [ext_resource type="Script" uid="uid://v3ypkrg4rxhi" path="res://scripts/spawner.gd" id="7_pa8r4"]
 [ext_resource type="Texture2D" uid="uid://bqkskukqbvl3o" path="res://art/icefishing.png" id="8_15mv3"]
 [ext_resource type="Script" uid="uid://c5dpyhp55u16v" path="res://scripts/tutorial.gd" id="8_e3sih"]
+[ext_resource type="Script" uid="uid://b44r6qf3f67pt" path="res://scripts/audio.gd" id="9_2y5yt"]
 [ext_resource type="Script" uid="uid://dm3vt8eqcajut" path="res://scripts/fishing_line.gd" id="9_e3sih"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_l885w"]
@@ -156,3 +157,6 @@ script = ExtResource("7_pa8r4")
 
 [node name="Tutorial" type="Node" parent="." unique_id=1961511963]
 script = ExtResource("8_e3sih")
+
+[node name="Audio" type="Node" parent="." unique_id=342865535]
+script = ExtResource("9_2y5yt")

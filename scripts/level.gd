@@ -7,7 +7,7 @@ extends Node2D
 @export var max_slips := 5
 @export_multiline var intro_text := ""
 @export_multiline var outro_text := ""
-@export var walk_in := false
+@export var walk_in := true
 
 const QTE_KEYS := {KEY_W: "W", KEY_A: "A", KEY_S: "S", KEY_D: "D"}
 const END_SCENE := "res://scenes/end.tscn"
@@ -33,7 +33,7 @@ const HOOK_REST := Vector2(0, -30)
 const HOLE_POS := Vector2(0, -30)
 const BANNER_POS := Vector2(-48, -190)
 const OFFSCREEN_X := -740.0
-const WALK_SPEED := 220.0
+const WALK_SPEED := 110.0
 const FISH_CARRY := Vector2(-22, 18)
 
 @onready var hook = $Hook
@@ -141,7 +141,7 @@ func _walk_to(target_x: float, frame_a: Rect2, frame_b: Rect2):
 		var dt := get_process_delta_time()
 		fisher_hold.global_position.x += WALK_SPEED * dt * dir
 		step += dt
-		if step >= 0.15:
+		if step >= 0.25:
 			step = 0.0
 			frame = not frame
 		fisher_hold.region_rect = frame_a if frame else frame_b
@@ -569,9 +569,11 @@ func _sequence_done():
 			_end_qte()
 			hook.finish_struggle(true)
 			say("Got it! Bring it up!")
+			var audio := get_node_or_null("Audio")
+			if audio and audio.has_method("on_fish_landed"):
+				audio.on_fish_landed()
 		else:
 			_new_sequence()
-
 
 # ---------- fisherman animation ----------
 
@@ -650,6 +652,12 @@ func _go_next():
 	if continue_prompt:
 		continue_prompt.visible = false
 	say("")
+
+	# start the next area's music as he walks away
+	var audio := get_node_or_null("Audio")
+	if audio and audio.has_method("on_level_leaving"):
+		audio.on_level_leaving()
+
 	var line := get_node_or_null("FishingLine") as CanvasItem
 	if line:
 		line.visible = false

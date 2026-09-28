@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://ba58norh48w8a"]
 
 [ext_resource type="Script" uid="uid://dbiefw7myud1i" path="res://scripts/screen.gd" id="1_mwn6m"]
+[ext_resource type="Script" uid="uid://b44r6qf3f67pt" path="res://scripts/audio.gd" id="2_3d26k"]
 
 [node name="Title" type="Control" unique_id=1686266434]
 layout_mode = 3
@@ -15,3 +16,6 @@ body_text = "For the first time in years, the old fisherman smiled. There was st
 prompt_text = "PRESS SPACE TO RETURN TO TITLE"
 next_scene = "uid://omx8k5c3dkul"
 show_dancers = true
+
+[node name="Node" type="Node" parent="." unique_id=355353901]
+script = ExtResource("2_3d26k")

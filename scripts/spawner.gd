@@ -10,6 +10,9 @@ const PUFFER_REGION := Rect2(512, 576, 64, 64)
 const EEL_REGION := Rect2(512, 256, 64, 64)
 const WALL_SPACING := 60.0
 
+# harmless background fish (no orange, so they never look like the target)
+const AMBIENT_FISH := [Vector2i(7, 1), Vector2i(9, 1), Vector2i(8, 7), Vector2i(7, 5)]
+
 @export_enum("level_1", "level_2") var layout := "level_1"
 
 var floor_y := 2300.0
@@ -20,15 +23,25 @@ var THEMES := {
 		"floor_y": 2300.0,
 		"sand": Vector2i(0, 0),
 		"fill": Vector2i(1, 7),
+		"fill_extras": [Vector2i(1, 4), Vector2i(1, 5)],
 		"top": Color(0.35, 0.78, 0.95),
 		"bottom": Color(0.05, 0.25, 0.5),
+		"schools": 7,
+		"rays": 6,
+		"ray_alpha": 0.12,
+		"bubbles": 24,
 	},
 	"level_2": {
 		"floor_y": 4000.0,
 		"sand": Vector2i(2, 0),
 		"fill": Vector2i(3, 2),
+		"fill_extras": [Vector2i(3, 0), Vector2i(3, 1)],
 		"top": Color(0.12, 0.35, 0.55),
 		"bottom": Color(0.02, 0.04, 0.12),
+		"schools": 6,
+		"rays": 3,
+		"ray_alpha": 0.07,
+		"bubbles": 18,
 	},
 }
 
@@ -137,9 +150,11 @@ func _ready():
 	floor_y = th["floor_y"]
 	floor_top = floor_y - 20.0
 	_make_water(th)
+	_make_light_rays(th)
 	_make_floor(th)
 	for d in DECOR[layout]:
 		_make_decor(d)
+	_make_ambient_life(th)
 	for entry in LAYOUTS[layout]:
 		if entry[0] == "wall":
 			_make_wall(entry[1], entry[2], entry[3])
@@ -149,7 +164,7 @@ func _ready():
 		if entry.size() > 2 and entry[2]:
 			node.add_to_group("clear_on_recast")
 		add_child(node)
-	for i in 14:
+	for i in th["bubbles"]:
 		_make_bubble()
 	_set_camera_limits()
 
@@ -246,11 +261,46 @@ func _make_water(th: Dictionary):
 	add_child(s)
 
 
+func _make_light_rays(th: Dictionary):
+	# soft beams of light coming down through the ice
+	var grad := Gradient.new()
+	grad.set_color(0, Color(1.0, 1.0, 0.9, 1.0))
+	grad.set_color(1, Color(1.0, 1.0, 0.9, 0.0))
+	var tex := GradientTexture2D.new()
+	tex.gradient = grad
+	tex.width = 16
+	tex.height = 256
+	tex.fill_from = Vector2(0, 0)
+	tex.fill_to = Vector2(0, 1)
+	var mat := CanvasItemMaterial.new()
+	mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	for i in th["rays"]:
+		var ray := Sprite2D.new()
+		ray.texture = tex
+		ray.material = mat
+		ray.centered = false
+		ray.position = Vector2(randf_range(-600.0, 500.0), 0)
+		ray.scale = Vector2(randf_range(3.0, 8.0), randf_range(3.0, 4.5))
+		ray.rotation_degrees = randf_range(-14.0, -6.0)
+		ray.z_index = -9
+		var a: float = th["ray_alpha"]
+		ray.modulate = Color(1, 1, 1, a)
+		add_child(ray)
+		var pulse := create_tween().set_loops()
+		var dur := randf_range(2.5, 4.5)
+		pulse.tween_property(ray, "modulate:a", a * 0.4, dur).set_trans(Tween.TRANS_SINE)
+		pulse.tween_property(ray, "modulate:a", a, dur).set_trans(Tween.TRANS_SINE)
+
+
 func _make_floor(th: Dictionary):
+	var extras: Array = th["fill_extras"]
 	for x in range(-640, 640, 64):
 		_sprite(th["sand"], Vector2(x + 32, floor_top + 32), 0.5, -5)
 		for row in [1, 2, 3]:
-			_sprite(th["fill"], Vector2(x + 32, floor_top + 32 + row * 64), 0.5, -5)
+			var cell: Vector2i = th["fill"]
+			if randf() < 0.15:
+				cell = extras.pick_random()
+			_sprite(cell, Vector2(x + 32, floor_top + 32 + row * 64), 0.5, -5)
 	_add_blocker(Vector2(0, floor_y), Vector2(1300, 40))
 
 
@@ -291,6 +341,42 @@ func _plant(cellv: Vector2i, x: float, sc: float, z: int) -> Sprite2D:
 	t.tween_property(s, "rotation_degrees", 4.0, dur).set_trans(Tween.TRANS_SINE)
 	t.tween_property(s, "rotation_degrees", -4.0, dur).set_trans(Tween.TRANS_SINE)
 	return s
+
+
+# ---------- ambient life ----------
+
+func _make_ambient_life(th: Dictionary):
+	# schools of harmless background fish crossing at different depths
+	for i in th["schools"]:
+		var y := randf_range(150.0, floor_top - 150.0)
+		var dir: float = [-1.0, 1.0].pick_random()
+		var speed := randf_range(40.0, 90.0)
+		var cell: Vector2i = AMBIENT_FISH.pick_random()
+		var count := randi_range(3, 6)
+		var start_x := randf_range(-640.0, 640.0)
+		for j in count:
+			var pos := Vector2(start_x - j * dir * 45.0 + randf_range(-10.0, 10.0),
+				y + randf_range(-30.0, 30.0))
+			var f := _sprite(cell, pos, randf_range(0.35, 0.5), -6)
+			f.modulate = Color(0.65, 0.8, 1.0, 0.45)
+			f.flip_h = dir < 0.0
+			_swim_forever(f, dir, speed)
+
+
+func _swim_forever(f: Sprite2D, dir: float, speed: float):
+	var wag := randf() * TAU
+	var base_y := f.position.y
+	while is_inside_tree():
+		var dt := get_process_delta_time()
+		f.position.x += dir * speed * dt
+		if dir > 0.0 and f.position.x > 720.0:
+			f.position.x = -720.0
+		elif dir < 0.0 and f.position.x < -720.0:
+			f.position.x = 720.0
+		wag += dt * 6.0
+		f.skew = sin(wag) * 0.15
+		f.position.y = base_y + sin(wag * 0.3) * 4.0
+		await get_tree().process_frame
 
 
 func _make_bubble():

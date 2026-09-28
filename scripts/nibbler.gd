@@ -9,6 +9,36 @@ extends CharacterBody2D
 @export var bites_once := false
 @export var puffs := false
 @export var activate_depth := -100000.0
+@export var size_boost := 1.3
+@export var outline_color := Color(1.0, 0.2, 0.2)
+
+const OUTLINE_SHADER := """
+shader_type canvas_item;
+uniform vec4 outline_color : source_color = vec4(1.0, 0.2, 0.2, 1.0);
+uniform float width = 1.5;
+
+void fragment() {
+	vec4 c = texture(TEXTURE, UV);
+	if (c.a < 0.1) {
+		vec2 px = TEXTURE_PIXEL_SIZE * width;
+		float a = 0.0;
+		a = max(a, texture(TEXTURE, UV + vec2(px.x, 0.0)).a);
+		a = max(a, texture(TEXTURE, UV - vec2(px.x, 0.0)).a);
+		a = max(a, texture(TEXTURE, UV + vec2(0.0, px.y)).a);
+		a = max(a, texture(TEXTURE, UV - vec2(0.0, px.y)).a);
+		a = max(a, texture(TEXTURE, UV + px).a);
+		a = max(a, texture(TEXTURE, UV - px).a);
+		a = max(a, texture(TEXTURE, UV + vec2(px.x, -px.y)).a);
+		a = max(a, texture(TEXTURE, UV + vec2(-px.x, px.y)).a);
+		if (a > 0.1) {
+			c = outline_color;
+		}
+	}
+	COLOR = c * COLOR;
+}
+"""
+
+static var _outline_shader: Shader
 
 var hook: Node2D
 var home: Vector2
@@ -30,8 +60,23 @@ func _ready():
 	home = global_position
 	hook = get_tree().get_first_node_in_group("hook")
 	$Mouth.add_to_group("nibbler")
+
+	# bigger + red outline = this fish is out to get you
+	sprite.scale *= size_boost
+	_apply_outline()
+
 	base_scale = sprite.scale
 	anim_t = randf() * TAU
+
+
+func _apply_outline():
+	if _outline_shader == null:
+		_outline_shader = Shader.new()
+		_outline_shader.code = OUTLINE_SHADER
+	var mat := ShaderMaterial.new()
+	mat.shader = _outline_shader
+	mat.set_shader_parameter("outline_color", outline_color)
+	sprite.material = mat
 
 
 func _physics_process(delta):

@@ -24,8 +24,6 @@ size = Vector2(28, 3012)
 
 [node name="Level" type="Node2D" unique_id=1837536374]
 script = ExtResource("1_5xbjy")
-next_level = "uid://ckjxu6srbeoln"
-walk_in = true
 
 [node name="WaterPlaceholder" type="ColorRect" parent="." unique_id=2074302051]
 visible = false

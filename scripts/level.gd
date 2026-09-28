@@ -15,6 +15,7 @@ const END_SCENE := "res://scenes/end.tscn"
 # pixel sheet pieces
 const ICE_SHEET := preload("res://art/icefishing_transparent.png")
 const HOLE_REGION := Rect2(104, 9, 16, 7)
+const ICE_SPECKLE := Rect2i(76, 0, 16, 16)
 const POSE_FISHING := Rect2(96, 16, 16, 16)   # rod out over the hole
 const POSE_ROD_UP := Rect2(80, 16, 16, 16)    # rod raised (cast)
 const DANCE_A := Rect2(176, 16, 16, 16)
@@ -76,6 +77,7 @@ func _ready():
 	_make_hole()
 	_setup_surface()
 	_make_bobber()
+	_make_snow()
 	_make_ice_cover()
 	fisher_hold.visible = true
 	fisher_cast.visible = false
@@ -168,9 +170,25 @@ func _fix_ice():
 	if left:
 		left.position = Vector2(-640, ICE_TOP)
 		left.size = Vector2(1280, -ICE_TOP)
+		_add_ice_texture(left)
 	var right := get_node_or_null("IceRight") as CanvasItem
 	if right:
 		right.visible = false
+
+
+func _add_ice_texture(target: Control):
+	# tile the speckle pattern from the ice fishing sheet across the ice
+	var img := ICE_SHEET.get_image().get_region(ICE_SPECKLE)
+	img.resize(64, 64, Image.INTERPOLATE_NEAREST)
+	var tex := ImageTexture.create_from_image(img)
+	var tiles := TextureRect.new()
+	target.add_child(tiles)
+	tiles.texture = tex
+	tiles.stretch_mode = TextureRect.STRETCH_TILE
+	tiles.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	tiles.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	tiles.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tiles.modulate = Color(1, 1, 1, 0.45)
 
 
 func _make_hole():
@@ -201,6 +219,67 @@ func _setup_surface():
 	# hook starts resting in the hole
 	hook.global_position = HOOK_REST
 	hook.start_pos = HOOK_REST
+
+
+func _make_snow():
+	# snow only exists above the ice: a clipping box that ends at the ice top
+	var sky_box := Control.new()
+	add_child(sky_box)
+	sky_box.position = Vector2(-640, -900)
+	sky_box.size = Vector2(1280, 900 + ICE_TOP)
+	sky_box.clip_contents = true
+	sky_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	# two layers for depth: small/slow/faint behind, big/fast in front
+	var flake := _make_flake_texture()
+	_snow_layer(sky_box, flake, 80, 1.0, 2.0, 15.0, 30.0, 0.6)   # far
+	_snow_layer(sky_box, flake, 45, 2.5, 4.0, 40.0, 70.0, 1.0)   # near
+
+
+func _snow_layer(parent: Control, flake: Texture2D, amount: int, size_min: float,
+		size_max: float, speed_min: float, speed_max: float, alpha: float):
+	var snow := CPUParticles2D.new()
+	parent.add_child(snow)
+	snow.texture = flake
+	snow.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	snow.position = Vector2(640, 440)   # top-center of the sky box
+	snow.amount = amount
+	snow.lifetime = 9.0
+	snow.preprocess = 9.0
+	snow.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	snow.emission_rect_extents = Vector2(680, 10)
+	snow.direction = Vector2(0, 1)
+	snow.spread = 15.0
+	snow.gravity = Vector2(0, 15)
+	snow.initial_velocity_min = speed_min
+	snow.initial_velocity_max = speed_max
+	snow.scale_amount_min = size_min
+	snow.scale_amount_max = size_max
+	snow.color = Color(1, 1, 1, alpha)
+
+
+func _make_flake_texture() -> ImageTexture:
+	# 7x7 pixel flake: white center, dark outline
+	var rows := [
+		"..ooo..",
+		".o###o.",
+		"o#####o",
+		"o#####o",
+		"o#####o",
+		".o###o.",
+		"..ooo..",
+	]
+	var outline := Color(0.3, 0.33, 0.4)
+	var img := Image.create(7, 7, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	for y in rows.size():
+		for x in rows[y].length():
+			var c: String = rows[y][x]
+			if c == "#":
+				img.set_pixel(x, y, Color.WHITE)
+			elif c == "o":
+				img.set_pixel(x, y, outline)
+	return ImageTexture.create_from_image(img)
 
 
 func _make_bobber():
@@ -238,6 +317,7 @@ func _make_ice_cover():
 	ice_cover.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ice_cover.z_index = 1
 	add_child(ice_cover)
+	_add_ice_texture(ice_cover)
 	# keep the hook and line drawn above the cover
 	hook.z_index = 2
 	var line := get_node_or_null("FishingLine") as CanvasItem
@@ -581,7 +661,13 @@ func _go_next():
 	var t := create_tween()
 	t.tween_property(fade, "modulate:a", 1.0, 0.6)
 	await t.finished
-	if next_level != "":
-		get_tree().change_scene_to_file(next_level)
-	else:
-		get_tree().change_scene_to_file(END_SCENE)
+
+	# level order lives here so it can't get lost in the Inspector
+	var order := {
+		"res://scenes/level_1.tscn": "res://scenes/level_2.tscn",
+		"res://scenes/level_2.tscn": END_SCENE,
+	}
+	var target: String = next_level
+	if target == "":
+		target = order.get(scene_file_path, END_SCENE)
+	get_tree().change_scene_to_file(target)

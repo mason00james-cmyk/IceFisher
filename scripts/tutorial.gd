@@ -1,20 +1,23 @@
 extends Node
 
-const MIN_TIME := 3.5
-const REELING := 2  # matches State.REELING in hook.gd
+const MIN_TIME := 5.0          # every line stays up at least this long
+const SECONDS_PER_CHAR := 0.08 # longer lines stay up longer
+const SINK_SPEED := 70.0       # how fast the hook drifts down in the tutorial
+const REELING := 2             # matches State.REELING in hook.gd
 
 @onready var level = get_parent()
 @onready var hook = get_parent().get_node("Hook")
 
-var shown := {}
+var shown := {}      # lines the player has actually seen
+var pending := {}    # lines waiting in the queue
 var bait_lost := false
-var queue: Array[String] = []
+var queue: Array = []   # each entry is [key, text]
 var showing_until := 0.0
 
 
 func _ready():
 	await get_tree().process_frame
-	hook.sink_speed = 100.0
+	hook.sink_speed = SINK_SPEED
 	tell("Nothing lives up here anymore. Everything's down there. "
 		+ "We only need one fish... the one that glows. Press SPACE to cast.", true)
 	hook.casted.connect(_on_cast)
@@ -22,6 +25,7 @@ func _ready():
 	hook.level_complete.connect(_on_done)
 	hook.qte_started.connect(_on_qte)
 	hook.struggle_started.connect(_on_struggle)
+	hook.exited_water.connect(_on_surface)
 
 
 func _process(_delta):
@@ -50,17 +54,22 @@ func _process(_delta):
 
 # ---------- text pacing ----------
 
-func tell(text: String, urgent := false):
+func tell(text: String, urgent := false, key := ""):
 	if urgent:
-		queue.clear()
-		_show(text)
+		_clear_queue()
+		_show(key, text)
 	else:
-		queue.append(text)
+		queue.append([key, text])
+		if key != "":
+			pending[key] = true
 
 
-func _show(text: String):
+func _show(key: String, text: String):
 	level.say(text)
-	var read_time: float = max(MIN_TIME, text.length() * 0.06)
+	if key != "":
+		shown[key] = true
+		pending.erase(key)
+	var read_time: float = max(MIN_TIME, text.length() * SECONDS_PER_CHAR)
 	showing_until = Time.get_ticks_msec() / 1000.0 + read_time
 
 
@@ -68,16 +77,30 @@ func _advance_queue():
 	if queue.is_empty():
 		return
 	if Time.get_ticks_msec() / 1000.0 >= showing_until:
-		_show(queue.pop_front())
+		var entry: Array = queue.pop_front()
+		_show(entry[0], entry[1])
+
+
+func _clear_queue():
+	# lines that never got shown can play again later
+	queue.clear()
+	pending.clear()
 
 
 func _once(key: String, cond: bool, text: String, urgent := false):
-	if cond and not shown.has(key):
-		shown[key] = true
-		tell(text, urgent)
+	if cond and not shown.has(key) and not pending.has(key):
+		tell(text, urgent, key)
 
 
 # ---------- events ----------
+
+func _on_surface():
+	_clear_queue()
+	# bait / catch messages handle themselves
+	if hook.hooked_fish or hook.bait_hp <= 0.0:
+		return
+	tell("Back up top. SPACE when you're ready to drop it again.", true)
+
 
 func _on_bait(hp: float, max_hp: float):
 	if hp > 0.0 and hp < max_hp and not bait_lost:
@@ -85,11 +108,10 @@ func _on_bait(hp: float, max_hp: float):
 			"That's a bite! See your bait bar drop, top left? "
 			+ "Every bite costs you.", true)
 	elif bait_lost and hp >= max_hp and not shown.has("recast"):
-		shown["recast"] = true
 		for n in get_tree().get_nodes_in_group("clear_on_recast"):
 			n.queue_free()
 		tell("Fresh bait. I scared the rest off. "
-			+ "SPACE to cast again, and look for the glow.", true)
+			+ "SPACE to cast again, and look for the glow.", true, "recast")
 
 
 func _on_qte():

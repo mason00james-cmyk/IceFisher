@@ -4,10 +4,9 @@
 [ext_resource type="Texture2D" uid="uid://dueohcohekhw3" path="res://icon.svg" id="1_014kd"]
 [ext_resource type="Script" uid="uid://c6tt3ds2crnei" path="res://scripts/hook.gd" id="1_bswci"]
 [ext_resource type="Shader" uid="uid://fi7gmdd4ejnq" path="res://shaders/desaturate.gdshader" id="3_rus8k"]
-[ext_resource type="PackedScene" uid="uid://erd36ioaa2kv" path="res://scenes/nibbler.tscn" id="5_4nkto"]
-[ext_resource type="PackedScene" uid="uid://d00pck1m3riht" path="res://scenes/target.tscn" id="5_fcfvj"]
-[ext_resource type="PackedScene" uid="uid://b6ga78ptpbccx" path="res://rock.tscn" id="7_pa8r4"]
+[ext_resource type="Script" uid="uid://v3ypkrg4rxhi" path="res://scripts/spawner.gd" id="7_pa8r4"]
 [ext_resource type="Texture2D" uid="uid://bqkskukqbvl3o" path="res://art/icefishing.png" id="8_15mv3"]
+[ext_resource type="Script" uid="uid://c5dpyhp55u16v" path="res://scripts/tutorial.gd" id="8_e3sih"]
 [ext_resource type="Script" uid="uid://dm3vt8eqcajut" path="res://scripts/fishing_line.gd" id="9_e3sih"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_l885w"]
@@ -27,6 +26,7 @@ size = Vector2(28, 3012)
 script = ExtResource("1_5xbjy")
 
 [node name="WaterPlaceholder" type="ColorRect" parent="." unique_id=2074302051]
+visible = false
 offset_left = -640.0
 offset_right = 640.0
 offset_bottom = 3000.0
@@ -90,30 +90,6 @@ grow_vertical = 2
 theme_override_font_sizes/font_size = 48
 horizontal_alignment = 1
 
-[node name="nibbler" parent="." unique_id=1392807344 instance=ExtResource("5_4nkto")]
-position = Vector2(-498, 1005)
-
-[node name="nibbler2" parent="." unique_id=1123354534 instance=ExtResource("5_4nkto")]
-position = Vector2(-205, 919)
-
-[node name="nibbler3" parent="." unique_id=1329811228 instance=ExtResource("5_4nkto")]
-position = Vector2(-437, 635)
-
-[node name="Target" parent="." unique_id=987206303 instance=ExtResource("5_fcfvj")]
-position = Vector2(-126, 695)
-
-[node name="Rock" parent="." unique_id=1114402189 instance=ExtResource("7_pa8r4")]
-position = Vector2(-384, 535)
-
-[node name="Rock" parent="Rock" unique_id=76368992 instance=ExtResource("7_pa8r4")]
-position = Vector2(168, -11)
-
-[node name="Rock" parent="Rock/Rock" unique_id=1733868864 instance=ExtResource("7_pa8r4")]
-position = Vector2(143, 69)
-
-[node name="Rock" parent="Rock/Rock/Rock" unique_id=1919163252 instance=ExtResource("7_pa8r4")]
-position = Vector2(-38, -228)
-
 [node name="wall left" type="StaticBody2D" parent="." unique_id=1167189045]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="wall left" unique_id=2133850182]
@@ -174,3 +150,9 @@ default_color = Color(0.0045364476, 0.004536448, 0.0045364476, 1)
 script = ExtResource("9_e3sih")
 rod_tip = NodePath("../Surface/RodTip")
 hook = NodePath("../Hook")
+
+[node name="Spawner" type="Node2D" parent="." unique_id=1238900696]
+script = ExtResource("7_pa8r4")
+
+[node name="Tutorial" type="Node" parent="." unique_id=1961511963]
+script = ExtResource("8_e3sih")

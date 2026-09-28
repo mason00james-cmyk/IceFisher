@@ -14,6 +14,7 @@ signal entered_water
 signal exited_water
 signal bait_changed(hp: float, max_hp: float)
 signal level_complete
+signal casted
 
 var state := State.READY
 var bait_hp := 0.0
@@ -35,6 +36,7 @@ func _physics_process(delta):
 		State.READY:
 			if Input.is_action_just_pressed("cast"):
 				state = State.SINKING
+				casted.emit()
 		State.SINKING:
 			var down := sink_speed if bait_hp > 0 else 0.0
 			velocity = Vector2(steer, down)

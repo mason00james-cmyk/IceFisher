@@ -7,6 +7,7 @@
 [ext_resource type="PackedScene" uid="uid://erd36ioaa2kv" path="res://scenes/nibbler.tscn" id="5_4nkto"]
 [ext_resource type="PackedScene" uid="uid://d00pck1m3riht" path="res://scenes/target.tscn" id="5_fcfvj"]
 [ext_resource type="PackedScene" uid="uid://b6ga78ptpbccx" path="res://rock.tscn" id="7_pa8r4"]
+[ext_resource type="Texture2D" uid="uid://bqkskukqbvl3o" path="res://art/icefishing.png" id="8_15mv3"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_l885w"]
 radius = 12.0
@@ -32,7 +33,7 @@ color = Color(0, 0.27450982, 1, 1)
 
 [node name="Hook" type="CharacterBody2D" parent="." unique_id=403484934]
 z_index = 1
-position = Vector2(0, -200)
+position = Vector2(0, -40)
 collision_layer = 2
 motion_mode = 1
 script = ExtResource("1_bswci")
@@ -130,7 +131,6 @@ offset_left = -640.0
 offset_top = -800.0
 offset_right = 640.0
 offset_bottom = 1.0
-color = Color(0.8235294, 0.98039216, 1, 1)
 
 [node name="IceLeft" type="ColorRect" parent="." unique_id=1066471297]
 offset_left = -641.0
@@ -143,3 +143,20 @@ offset_left = 32.0
 offset_top = -10.0
 offset_right = 642.0
 offset_bottom = 58.0
+
+[node name="Surface" type="Node2D" parent="." unique_id=1887086314]
+texture_filter = 1
+
+[node name="FishermanHold" type="Sprite2D" parent="Surface" unique_id=723793435]
+position = Vector2(-70, -47)
+scale = Vector2(5, 5)
+texture = ExtResource("8_15mv3")
+region_enabled = true
+region_rect = Rect2(80, 16, 16, 16)
+
+[node name="FishermanCast" type="Sprite2D" parent="Surface" unique_id=129736286]
+position = Vector2(-73, -47)
+scale = Vector2(5, 5)
+texture = ExtResource("8_15mv3")
+region_enabled = true
+region_rect = Rect2(96, 16, 16, 16)

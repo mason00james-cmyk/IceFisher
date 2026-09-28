@@ -1,17 +1,17 @@
 [gd_scene format=3 uid="uid://b6ga78ptpbccx"]
 
-[ext_resource type="Texture2D" uid="uid://dueohcohekhw3" path="res://icon.svg" id="1_o0qsl"]
+[ext_resource type="Texture2D" uid="uid://drlfxreey5ay4" path="res://art/spritesheet.png" id="1_o0qsl"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_l885w"]
-size = Vector2(85, 80)
+size = Vector2(54, 36)
 
 [node name="Rock" type="StaticBody2D" unique_id=1114402189]
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=658549701]
-modulate = Color(0.03610091, 0.03610091, 0.03610091, 1)
-scale = Vector2(0.6, 0.6)
 texture = ExtResource("1_o0qsl")
+region_enabled = true
+region_rect = Rect2(328, 344, 56, 48)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=497028656]
-position = Vector2(-0.5, 0)
+position = Vector2(-2, -1)
 shape = SubResource("RectangleShape2D_l885w")

@@ -1,0 +1,19 @@
+[gd_scene format=3 uid="uid://d00pck1m3riht"]
+
+[ext_resource type="Script" uid="uid://dqawbt0snsiac" path="res://scripts/target.gd" id="1_b5a2r"]
+[ext_resource type="Texture2D" uid="uid://dueohcohekhw3" path="res://icon.svg" id="2_nlbrr"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_l885w"]
+radius = 16.0
+
+[node name="Target" type="Node2D" unique_id=987206303]
+script = ExtResource("1_b5a2r")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1821536428]
+scale = Vector2(0.35, 0.35)
+texture = ExtResource("2_nlbrr")
+
+[node name="Mouth" type="Area2D" parent="." unique_id=505461252]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Mouth" unique_id=7035192]
+shape = SubResource("CircleShape2D_l885w")

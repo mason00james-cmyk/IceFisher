@@ -1,0 +1,15 @@
+[gd_scene format=3 uid="uid://omx8k5c3dkul"]
+
+[ext_resource type="Script" uid="uid://dbiefw7myud1i" path="res://scripts/screen.gd" id="1_4ignj"]
+
+[node name="Title" type="Control" unique_id=1686266434]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_4ignj")
+body_text = "The world above froze over. Whatever's still alive is down there, under the ice."
+next_scene = "uid://m51eexi2yg12"
+show_dancers = true

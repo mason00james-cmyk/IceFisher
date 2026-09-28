@@ -6,8 +6,11 @@ extends Node2D
 @export var struggle_key_time := 2.0
 @export var max_slips := 5
 @export_multiline var intro_text := ""
+@export_multiline var outro_text := ""
+@export var walk_in := false
 
 const QTE_KEYS := {KEY_W: "W", KEY_A: "A", KEY_S: "S", KEY_D: "D"}
+const END_SCENE := "res://scenes/end.tscn"
 
 # pixel sheet pieces
 const ICE_SHEET := preload("res://art/icefishing_transparent.png")
@@ -16,6 +19,10 @@ const POSE_FISHING := Rect2(96, 16, 16, 16)   # rod out over the hole
 const POSE_ROD_UP := Rect2(80, 16, 16, 16)    # rod raised (cast)
 const DANCE_A := Rect2(176, 16, 16, 16)
 const DANCE_B := Rect2(192, 16, 16, 16)
+const WALK_LEFT_A := Rect2(160, 16, 16, 16)   # facing left, legs apart
+const WALK_LEFT_B := Rect2(144, 16, 16, 16)   # facing left, legs together
+const WALK_RIGHT_A := Rect2(112, 16, 16, 16)  # facing right, legs apart
+const WALK_RIGHT_B := Rect2(128, 16, 16, 16)  # facing right, legs together
 
 # surface layout (ice top is at y = -30)
 const ICE_TOP := -30.0
@@ -24,6 +31,9 @@ const ROD_TIP := Vector2(-10, -88)
 const HOOK_REST := Vector2(0, -30)
 const HOLE_POS := Vector2(0, -30)
 const BANNER_POS := Vector2(-48, -190)
+const OFFSCREEN_X := -740.0
+const WALK_SPEED := 220.0
+const FISH_CARRY := Vector2(-22, 18)
 
 @onready var hook = $Hook
 @onready var color_fx: ColorRect = $ColorFX/ColorRect
@@ -39,6 +49,9 @@ var caught_layer: CanvasLayer
 var dancing := false
 var ice_cover: ColorRect
 var cover_tween: Tween
+var waiting_continue := false
+var leaving := false
+var continue_prompt: Label
 
 var qte_label: RichTextLabel
 var qte_seq: Array = []
@@ -73,12 +86,78 @@ func _ready():
 	hook.casted.connect(_on_cast)
 	hook.qte_started.connect(_start_reel_qte)
 	hook.struggle_started.connect(_start_struggle)
-	say(intro_text)
+	say("")
+	_intro()
 
 
 func say(text: String):
 	dialogue.text = text
 	dialogue_box.visible = text != ""
+
+
+# ---------- level intro ----------
+
+func _intro():
+	var fade := _make_fade(1.0)
+	var fade_in := create_tween()
+	fade_in.tween_property(fade, "modulate:a", 0.0, 0.8)
+	fade_in.tween_callback(fade.queue_free)
+
+	if walk_in:
+		# no casting until he's at the hole
+		hook.set_physics_process(false)
+		var line := get_node_or_null("FishingLine") as CanvasItem
+		if line:
+			line.visible = false
+		fisher_cast.visible = false
+		fisher_hold.visible = true
+		fisher_hold.global_position = Vector2(OFFSCREEN_X, FISHER_POS.y)
+
+		await _walk_to(FISHER_POS.x, WALK_RIGHT_A, WALK_RIGHT_B)
+
+		fisher_hold.region_rect = POSE_FISHING
+		fisher_hold.global_position = FISHER_POS
+		if line:
+			line.visible = true
+		hook.set_physics_process(true)
+	else:
+		await fade_in.finished
+
+	if intro_text != "":
+		say(intro_text)
+
+
+func _walk_to(target_x: float, frame_a: Rect2, frame_b: Rect2):
+	var dir: float = sign(target_x - fisher_hold.global_position.x)
+	var frame := false
+	var step := 0.0
+	var fish: Node2D = null
+	if leaving:
+		fish = hook.hooked_fish
+		hook.hooked_fish = null   # stop the hook from moving the fish
+	while (target_x - fisher_hold.global_position.x) * dir > 0.0:
+		var dt := get_process_delta_time()
+		fisher_hold.global_position.x += WALK_SPEED * dt * dir
+		step += dt
+		if step >= 0.15:
+			step = 0.0
+			frame = not frame
+		fisher_hold.region_rect = frame_a if frame else frame_b
+		fisher_hold.global_position.y = FISHER_POS.y - (3.0 if frame else 0.0)
+		if fish:
+			fish.global_position = fisher_hold.global_position + FISH_CARRY
+		await get_tree().process_frame
+	fisher_hold.global_position = Vector2(target_x, FISHER_POS.y)
+
+
+func _make_fade(start_alpha: float) -> ColorRect:
+	var fade := ColorRect.new()
+	$HUD.add_child(fade)
+	fade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	fade.color = Color.BLACK
+	fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	fade.modulate.a = start_alpha
+	return fade
 
 
 # ---------- surface setup ----------
@@ -285,6 +364,20 @@ func _show_caught_banner():
 	bob.tween_property(banner, "position:y", BANNER_POS.y, 0.6).set_trans(Tween.TRANS_SINE)
 
 
+func _show_continue_prompt():
+	continue_prompt = Label.new()
+	$HUD.add_child(continue_prompt)
+	continue_prompt.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	continue_prompt.offset_top = 40
+	continue_prompt.offset_bottom = 90
+	continue_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	continue_prompt.text = "PRESS SPACE TO CONTINUE"
+	_style_label(continue_prompt, 32)
+	var blink := create_tween().set_loops()
+	blink.tween_property(continue_prompt, "modulate:a", 0.2, 0.6)
+	blink.tween_property(continue_prompt, "modulate:a", 1.0, 0.6)
+
+
 # ---------- skill checks ----------
 
 func _start_reel_qte():
@@ -344,6 +437,14 @@ func _process(delta):
 
 
 func _unhandled_input(event):
+	# after a catch, wait for SPACE to move on
+	if waiting_continue:
+		if event.is_action_pressed("cast"):
+			waiting_continue = false
+			get_viewport().set_input_as_handled()
+			_go_next()
+		return
+
 	if not qte_active:
 		return
 	if not (event is InputEventKey and event.pressed and not event.echo):
@@ -387,6 +488,7 @@ func _sequence_done():
 		if rounds_done >= struggle_rounds:
 			_end_qte()
 			hook.finish_struggle(true)
+			say("Got it! Bring it up!")
 		else:
 			_new_sequence()
 
@@ -404,7 +506,7 @@ func _show_cast_pose(duration: float):
 
 
 func _dance():
-	# dances until the level changes
+	# dances until he walks off
 	dancing = true
 	var base_y := fisher_hold.position.y
 	fisher_cast.visible = false
@@ -451,8 +553,35 @@ func _on_exit_water():
 
 
 func _on_level_complete():
+	say(outro_text)
 	_show_caught_banner()
 	_dance()
-	await get_tree().create_timer(4.5).timeout
+	# short pause so the moment lands, then wait for the player
+	await get_tree().create_timer(1.5).timeout
+	_show_continue_prompt()
+	waiting_continue = true
+
+
+func _go_next():
+	if leaving:
+		return
+	leaving = true
+	dancing = false
+	if continue_prompt:
+		continue_prompt.visible = false
+	say("")
+	var line := get_node_or_null("FishingLine") as CanvasItem
+	if line:
+		line.visible = false
+	fisher_cast.visible = false
+	fisher_hold.visible = true
+	fisher_hold.global_position = FISHER_POS
+	await _walk_to(OFFSCREEN_X, WALK_LEFT_A, WALK_LEFT_B)
+	var fade := _make_fade(0.0)
+	var t := create_tween()
+	t.tween_property(fade, "modulate:a", 1.0, 0.6)
+	await t.finished
 	if next_level != "":
 		get_tree().change_scene_to_file(next_level)
+	else:
+		get_tree().change_scene_to_file(END_SCENE)

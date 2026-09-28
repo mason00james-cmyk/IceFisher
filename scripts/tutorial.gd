@@ -111,4 +111,5 @@ func _on_struggle():
 
 
 func _on_done():
-	tell("That's the one. Now the real trip... out past the trench.", true)
+	tell("That's the one. Now pack up. There's an old hole way out on the lake "
+		+ "nobody fishes anymore. That's where the big ones are.", true)

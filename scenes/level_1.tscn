@@ -8,6 +8,7 @@
 [ext_resource type="PackedScene" uid="uid://d00pck1m3riht" path="res://scenes/target.tscn" id="5_fcfvj"]
 [ext_resource type="PackedScene" uid="uid://b6ga78ptpbccx" path="res://rock.tscn" id="7_pa8r4"]
 [ext_resource type="Texture2D" uid="uid://bqkskukqbvl3o" path="res://art/icefishing.png" id="8_15mv3"]
+[ext_resource type="Script" uid="uid://dm3vt8eqcajut" path="res://scripts/fishing_line.gd" id="9_e3sih"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_l885w"]
 radius = 12.0
@@ -137,26 +138,39 @@ offset_left = -641.0
 offset_top = -8.0
 offset_right = -31.0
 offset_bottom = 60.0
+color = Color(0.6052743, 0.6052743, 0.6052743, 1)
 
 [node name="IceRight" type="ColorRect" parent="." unique_id=1201784927]
 offset_left = 32.0
 offset_top = -10.0
 offset_right = 642.0
 offset_bottom = 58.0
+color = Color(0.6052743, 0.6052743, 0.6052743, 1)
 
 [node name="Surface" type="Node2D" parent="." unique_id=1887086314]
 texture_filter = 1
 
 [node name="FishermanHold" type="Sprite2D" parent="Surface" unique_id=723793435]
-position = Vector2(-70, -47)
+position = Vector2(-70, -48.000004)
 scale = Vector2(5, 5)
 texture = ExtResource("8_15mv3")
 region_enabled = true
 region_rect = Rect2(80, 16, 16, 16)
 
 [node name="FishermanCast" type="Sprite2D" parent="Surface" unique_id=129736286]
-position = Vector2(-73, -47)
+position = Vector2(-73.00001, -48.000004)
 scale = Vector2(5, 5)
 texture = ExtResource("8_15mv3")
 region_enabled = true
 region_rect = Rect2(96, 16, 16, 16)
+
+[node name="RodTip" type="Marker2D" parent="Surface" unique_id=1047329616]
+position = Vector2(-33, -67)
+
+[node name="FishingLine" type="Line2D" parent="." unique_id=950122293 node_paths=PackedStringArray("rod_tip", "hook")]
+z_index = 1
+width = 2.0
+default_color = Color(0.0045364476, 0.004536448, 0.0045364476, 1)
+script = ExtResource("9_e3sih")
+rod_tip = NodePath("../Surface/RodTip")
+hook = NodePath("../Hook")

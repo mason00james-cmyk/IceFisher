@@ -64,6 +64,7 @@ func _process(delta):
 	t += delta
 	position = home + Vector2(sin(t * swim_speed) * swim_distance, 0)
 	sprite.flip_h = cos(t * swim_speed) < 0
+	sprite.skew = sin(t * 5.0) * 0.15
 
 
 func on_hooked():

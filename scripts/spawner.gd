@@ -7,6 +7,8 @@ const TARGET := preload("res://scenes/target.tscn")
 const CELL := 64
 const SCALE_FIX := 2.0
 const PUFFER_REGION := Rect2(512, 576, 64, 64)
+const EEL_REGION := Rect2(512, 256, 64, 64)
+const WALL_SPACING := 60.0
 
 @export_enum("level_1", "level_2") var layout := "level_1"
 
@@ -31,32 +33,61 @@ var THEMES := {
 }
 
 # Gameplay: [kind, position, cleared after tutorial bait loss?]
+# Walls:    ["wall", y, gap_x, gap_width]
 var LAYOUTS := {
 	"level_1": [
-		# steering
 		["rock", Vector2(-200, 250)],
 		["rock", Vector2(180, 380)],
-		# guaranteed bite
 		["biter", Vector2(0, 750), true],
-		# fish to avoid
 		["nibbler", Vector2(-280, 1000), true],
 		["nibbler", Vector2(260, 1080), true],
-		# rock lesson
 		["rock", Vector2(-120, 1280)],
 		["rock", Vector2(-120, 1340)],
 		["nibbler", Vector2(-250, 1310), true],
 		["rock", Vector2(120, 1480)],
 		["rock", Vector2(120, 1540)],
 		["nibbler", Vector2(250, 1510), true],
-		# the big bite
-		["puffer", Vector2(0, 2000), true],
-		# the prize
+		["puffer", Vector2(0, 1950), true],
 		["target", Vector2(0, 2190)],
 	],
-	"level_2": [],
+	"level_2": [
+		# the drop
+		["rock", Vector2(-250, 400)],
+		["rock", Vector2(300, 560)],
+		# the school
+		["nibbler", Vector2(-540, 930)],
+		["nibbler", Vector2(-405, 990)],
+		["nibbler", Vector2(-270, 930)],
+		["nibbler", Vector2(-135, 990)],
+		["nibbler", Vector2(0, 930)],
+		["nibbler", Vector2(135, 990)],
+		["nibbler", Vector2(270, 930)],
+		["nibbler", Vector2(405, 990)],
+		["nibbler", Vector2(540, 930)],
+		# the maze
+		["wall", 1400.0, 420.0, 180.0],
+		["nibbler", Vector2(-450, 1560)],
+		["eel", Vector2(0, 1650)],
+		["wall", 1800.0, -420.0, 180.0],
+		["nibbler", Vector2(450, 1960)],
+		["eel", Vector2(0, 2050)],
+		["wall", 2200.0, 380.0, 180.0],
+		["nibbler", Vector2(-420, 2360)],
+		["wall", 2600.0, -380.0, 180.0],
+		# the graveyard
+		["puffer_mid", Vector2(-200, 3000)],
+		["puffer_mid", Vector2(250, 3220)],
+		# the den
+		["rock", Vector2(-190, 3780)],
+		["rock", Vector2(190, 3780)],
+		["puffer_mid", Vector2(0, 3580)],
+		["target", Vector2(0, 3780)],
+	],
 }
 
-# Decoration: plants sit on the floor at x; wallrocks go at (x, y)
+# plant / bgplant: [kind, cell, x, scale] sits on the floor
+# wallrock:        [kind, cell, x, y] solid
+# deco:            [kind, cell, x, y, scale] floats in place
 var DECOR := {
 	"level_1": [
 		["bgplant", Vector2i(10, 3), -420, 1.0],
@@ -77,8 +108,29 @@ var DECOR := {
 		["wallrock", Vector2i(5, 5), -600, 1600],
 		["wallrock", Vector2i(5, 6), 600, 1950],
 	],
-	"level_2": [],
+	"level_2": [
+		["bgplant", Vector2i(10, 3), -300, 1.0],
+		["bgplant", Vector2i(9, 9), 350, 1.0],
+		["plant", Vector2i(4, 10), -520, 0.6],
+		["plant", Vector2i(3, 11), -380, 0.6],
+		["plant", Vector2i(4, 11), 420, 0.6],
+		["plant", Vector2i(3, 10), 540, 0.6],
+		["wallrock", Vector2i(5, 5), -600, 300],
+		["wallrock", Vector2i(5, 6), 600, 700],
+		["wallrock", Vector2i(5, 4), -600, 1150],
+		["wallrock", Vector2i(5, 7), 600, 2900],
+		["wallrock", Vector2i(5, 5), -600, 3300],
+		["wallrock", Vector2i(5, 6), 600, 3600],
+		["deco", Vector2i(7, 0), -380, 2950, 0.8],
+		["deco", Vector2i(9, 0), 320, 3050, 0.7],
+		["deco", Vector2i(8, 5), -120, 3300, 0.8],
+		["deco", Vector2i(8, 6), 420, 3400, 0.7],
+		["deco", Vector2i(6, 11), -450, 3500, 0.9],
+		["deco", Vector2i(8, 11), -350, 3960, 0.8],
+		["deco", Vector2i(7, 11), 330, 3960, 0.8],
+	],
 }
+
 
 func _ready():
 	var th: Dictionary = THEMES[layout]
@@ -89,6 +141,9 @@ func _ready():
 	for d in DECOR[layout]:
 		_make_decor(d)
 	for entry in LAYOUTS[layout]:
+		if entry[0] == "wall":
+			_make_wall(entry[1], entry[2], entry[3])
+			continue
 		var node: Node2D = _make(entry[0])
 		node.position = entry[1]
 		if entry.size() > 2 and entry[2]:
@@ -97,6 +152,7 @@ func _ready():
 	for i in 14:
 		_make_bubble()
 	_set_camera_limits()
+
 
 # ---------- gameplay pieces ----------
 
@@ -116,16 +172,47 @@ func _make(kind: String) -> Node2D:
 			b.bites_once = true
 			return b
 		"puffer":
-			var p = NIBBLER.instantiate()
-			p.nibble_damage = 100.0
-			p.chase_range = 200.0
-			p.chase_speed = 300.0
-			p.scale = Vector2(1.4, 1.4)
-			var spr: Sprite2D = p.get_node("Sprite2D")
-			spr.region_rect = PUFFER_REGION
+			# tutorial guard: unavoidable once you're below 1800
+			return _puffer(100.0, 2000.0, 380.0, 1800.0)
+		"puffer_mid":
+			return _puffer(60.0, 200.0, 180.0)
+		"eel":
+			var e = NIBBLER.instantiate()
+			e.nibble_damage = 30.0
+			e.chase_range = 0.0
+			e.wander_distance = 450.0
+			e.idle_speed = 220.0
+			e.scale = Vector2(1.3, 1.3)
+			var spr: Sprite2D = e.get_node("Sprite2D")
+			spr.region_rect = EEL_REGION
 			spr.scale = Vector2(1.0, 1.0)
-			return p
+			return e
 	return null
+
+
+func _puffer(damage: float, range_px: float, speed: float, depth := -100000.0) -> Node2D:
+	var p = NIBBLER.instantiate()
+	p.nibble_damage = damage
+	p.chase_range = range_px
+	p.chase_speed = speed
+	p.activate_depth = depth
+	p.puffs = true
+	p.scale = Vector2(1.4, 1.4)
+	var spr: Sprite2D = p.get_node("Sprite2D")
+	spr.region_rect = PUFFER_REGION
+	spr.scale = Vector2(1.0, 1.0)
+	return p
+
+
+func _make_wall(y: float, gap_x: float, gap_w: float):
+	var x := -600.0
+	while x <= 600.0:
+		if abs(x - gap_x) > gap_w / 2.0:
+			var r: Node2D = ROCK.instantiate()
+			r.position = Vector2(x, y)
+			add_child(r)
+		x += WALL_SPACING
+
 
 # ---------- looks ----------
 
@@ -139,6 +226,7 @@ func _sprite(cellv: Vector2i, pos: Vector2, sc: float, z: int) -> Sprite2D:
 	s.z_index = z
 	add_child(s)
 	return s
+
 
 func _make_water(th: Dictionary):
 	var grad := Gradient.new()
@@ -157,19 +245,14 @@ func _make_water(th: Dictionary):
 	s.z_index = -10
 	add_child(s)
 
+
 func _make_floor(th: Dictionary):
 	for x in range(-640, 640, 64):
 		_sprite(th["sand"], Vector2(x + 32, floor_top + 32), 0.5, -5)
 		for row in [1, 2, 3]:
 			_sprite(th["fill"], Vector2(x + 32, floor_top + 32 + row * 64), 0.5, -5)
-	var body := StaticBody2D.new()
-	var shape := CollisionShape2D.new()
-	var rect := RectangleShape2D.new()
-	rect.size = Vector2(1300, 40)
-	shape.shape = rect
-	body.add_child(shape)
-	body.position = Vector2(0, floor_y)
-	add_child(body)
+	_add_blocker(Vector2(0, floor_y), Vector2(1300, 40))
+
 
 func _make_decor(d: Array):
 	match d[0]:
@@ -179,8 +262,25 @@ func _make_decor(d: Array):
 			var s := _plant(d[1], d[2], d[3], -8)
 			s.modulate = Color(1, 1, 1, 0.5)
 		"wallrock":
-			var s := _sprite(d[1], Vector2(d[2], d[3]), 0.8, -1)
+			var pos := Vector2(d[2], d[3])
+			var s := _sprite(d[1], pos, 0.8, -1)
 			s.flip_h = d[2] > 0
+			_add_blocker(pos, Vector2(90, 70))
+		"deco":
+			var s := _sprite(d[1], Vector2(d[2], d[3]), d[4], -1)
+			s.modulate = Color(1, 1, 1, 0.85)
+
+
+func _add_blocker(pos: Vector2, size: Vector2):
+	var body := StaticBody2D.new()
+	var shape := CollisionShape2D.new()
+	var rect := RectangleShape2D.new()
+	rect.size = size
+	shape.shape = rect
+	body.add_child(shape)
+	body.position = pos
+	add_child(body)
+
 
 func _plant(cellv: Vector2i, x: float, sc: float, z: int) -> Sprite2D:
 	var s := _sprite(cellv, Vector2(x, floor_top + 8), sc, z)
@@ -192,10 +292,13 @@ func _plant(cellv: Vector2i, x: float, sc: float, z: int) -> Sprite2D:
 	t.tween_property(s, "rotation_degrees", -4.0, dur).set_trans(Tween.TRANS_SINE)
 	return s
 
+
 func _make_bubble():
-	var b := _sprite(Vector2i(9, [3, 4, 5].pick_random()), Vector2.ZERO, randf_range(0.15, 0.3), -3)
+	var b := _sprite(Vector2i(9, [3, 4, 5].pick_random()), Vector2.ZERO,
+		randf_range(0.15, 0.3), -3)
 	b.modulate = Color(1, 1, 1, 0.6)
 	_rise(b, true)
+
 
 func _rise(b: Sprite2D, first: bool):
 	var start_y: float = randf_range(60.0, floor_top) if first else floor_top
@@ -204,6 +307,7 @@ func _rise(b: Sprite2D, first: bool):
 	var t := create_tween()
 	t.tween_property(b, "position:y", 20.0, dur)
 	t.tween_callback(_rise.bind(b, false))
+
 
 func _set_camera_limits():
 	var cam := get_node_or_null("../Hook/Camera2D") as Camera2D
